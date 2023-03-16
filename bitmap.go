@@ -2,7 +2,6 @@ package go_bitmap
 
 import (
 	"bytes"
-	"github.com/GoFeGroup/go-bitmap/glog"
 	"image"
 	"image/png"
 )
@@ -10,29 +9,28 @@ import (
 import "C"
 
 type Option struct {
-	Width       int
-	Height      int
-	BitPerPixel int
-	Data        []byte
-	LogLevel    glog.LEVEL
+	Top         int    `json:"top"`
+	Left        int    `json:"left"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	BitPerPixel int    `json:"-"`
+	Data        []byte `json:"-"`
 }
 
 type BitMap struct {
-	image image.Image
+	Image image.Image
 }
 
 func (m *BitMap) ToPng() []byte {
 	buf := new(bytes.Buffer)
-	ThrowError(png.Encode(buf, m.image))
+	ThrowError(png.Encode(buf, m.Image))
 	return buf.Bytes()
 }
 
 func NewBitMapFromRDP6(option *Option) *BitMap {
-	glog.SetLevel(option.LogLevel)
 	return (&BitMap{}).LoadRDP60(option)
 }
 
 func NewBitmapFromRLE(option *Option) *BitMap {
-	glog.SetLevel(option.LogLevel)
 	return (&BitMap{}).LoadRLE(option)
 }

@@ -2,7 +2,6 @@ package go_bitmap
 
 import (
 	"encoding/hex"
-	"github.com/GoFeGroup/go-bitmap/glog"
 	"os"
 	"testing"
 )
@@ -12,7 +11,7 @@ func TestBitMap_LoadRLE(t *testing.T) {
 	data, _ := hex.DecodeString(s)
 
 	bitmap := NewBitmapFromRLE(&Option{
-		Width: 64, Height: 64, BitPerPixel: 16, Data: data, LogLevel: glog.ERROR,
+		Width: 64, Height: 64, BitPerPixel: 16, Data: data,
 	})
 
 	pngData := bitmap.ToPng()
@@ -24,7 +23,7 @@ func TestBitMap_LoadRDP60(t *testing.T) {
 	data, _ := hex.DecodeString(s)
 
 	bitmap := NewBitMapFromRDP6(&Option{
-		Width: 64, Height: 64, BitPerPixel: 32, Data: data, LogLevel: glog.ERROR,
+		Width: 64, Height: 64, BitPerPixel: 32, Data: data,
 	})
 
 	pngData := bitmap.ToPng()

@@ -33,7 +33,7 @@ func ThrowError(e any) {
 	}
 }
 
-func ThrowErrorf(format string, e ...any) {
+func Throwf(format string, e ...any) {
 	s := fmt.Sprintf(format, e...)
 	ThrowError(s)
 }
