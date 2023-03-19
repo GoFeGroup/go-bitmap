@@ -34,3 +34,7 @@ func NewBitMapFromRDP6(option *Option) *BitMap {
 func NewBitmapFromRLE(option *Option) *BitMap {
 	return (&BitMap{}).LoadRLE(option)
 }
+
+func NewBitmapFromPlain(option *Option) *BitMap {
+	return (&BitMap{}).LoadPlain(option)
+}

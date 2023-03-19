@@ -5,6 +5,8 @@ import (
 	"image"
 	"image/color"
 	"io"
+
+	"github.com/GoFeGroup/go-bitmap/glog"
 )
 
 const (
@@ -188,18 +190,18 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 	dest := new(bytes.Buffer)
 
 	insertFgPel := false // for FILL
-	//pixels := 0
+	pixels := 0
 
 	for r.Len() > 0 {
 		codeHeader := ReadByte(r)
 		code := extractCodeId(codeHeader)
-		//glog.Debugf("code: %s[%v]", codeMap[code], code)
+		glog.Debugf("code: %s[%#x] codeHeader: %x", codeMap[code], code, codeHeader)
 		runLength := extractRunLength(code, codeHeader, r)
 
 		// Handle Background Run Orders.
 		if code == REGULAR_BG_RUN || code == MEGA_MEGA_BG_RUN { // FILL
-			//pixels += runLength
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			pixel := peekPixel(dest, w*getPixelSize(bpp), bpp) // 查找上一行像素
 			if insertFgPel {                                   // FILL & lastcode == FILL
@@ -214,7 +216,7 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 				writePixel(dest, pixel, bpp)
 			}
 
-			//glog.Debugf("--- dest pixels: %v", dest.Len()/getPixelSize(bpp))
+			glog.Debugf("--- dest pixels: %v", dest.Len()/getPixelSize(bpp))
 			insertFgPel = true // set last opcode=FILL
 			continue
 		}
@@ -226,7 +228,7 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 		case LITE_SET_FG_FG_RUN, MEGA_MEGA_SET_FG_RUN, // MIX_SET
 			LITE_SET_FG_FGBG_IMAGE, MEGA_MEGA_SET_FGBG_IMAGE: // FOM_SET
 			fgPel = readPixel(r, bpp)
-			//glog.Debugf(" -> change fgPel: %x", fgPel)
+			glog.Debugf(" -> change fgPel: %x", fgPel)
 		}
 
 		// Process
@@ -234,8 +236,8 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle Foreground Run Orders.
 		case REGULAR_FG_RUN, MEGA_MEGA_FG_RUN, LITE_SET_FG_FG_RUN, MEGA_MEGA_SET_FG_RUN: // MIX,MIX,MIX_SET,MIX_SET
-			//pixels += runLength
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			for ; runLength > 0; runLength-- {
 				pixel := peekPixel(dest, w*getPixelSize(bpp), bpp) // 查找上一行像素
@@ -244,12 +246,12 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle Dithered Run Orders.
 		case LITE_DITHERED_RUN, MEGA_MEGA_DITHERED_RUN: // BICOLOR
-			//pixels += runLength * 2
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength * 2
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			pixelA := readPixel(r, bpp)
 			pixelB := readPixel(r, bpp)
-
+			glog.Debugf("pixel: %x %x", pixelA, pixelB)
 			for ; runLength > 0; runLength-- {
 				writePixel(dest, pixelA, bpp)
 				writePixel(dest, pixelB, bpp)
@@ -257,8 +259,8 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle Color Run Orders.
 		case REGULAR_COLOR_RUN, MEGA_MEGA_COLOR_RUN: // COLOR
-			//pixels += runLength
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			pixelA := readPixel(r, bpp)
 			for ; runLength > 0; runLength-- {
@@ -267,16 +269,16 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle Color Image Orders.
 		case REGULAR_COLOR_IMAGE, MEGA_MEGA_COLOR_IMAGE: // COPY
-			//pixels += runLength
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			readBytes := ReadBytes(r, int(runLength)*getPixelSize(bpp))
 			WriteBytes(dest, readBytes)
 
 		// Handle Foreground/Background Image Orders.
 		case REGULAR_FGBG_IMAGE, MEGA_MEGA_FGBG_IMAGE, LITE_SET_FG_FGBG_IMAGE, MEGA_MEGA_SET_FGBG_IMAGE: //FOM,FOM,FOM_SET,FOM_SET
-			//pixels += runLength
-			//glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
+			pixels += runLength
+			glog.Debugf("+++ runLength: %v, pixels: %v", runLength, pixels)
 
 			for ; runLength > 0; runLength -= 8 {
 				bitmask := ReadByte(r) // => mask
@@ -295,8 +297,8 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 			}
 		// Handle Special Order 1.
 		case SPECIAL_FGBG_1:
-			//pixels += 8
-			//glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
+			pixels += 8
+			glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
 
 			cBits := 8
 			bitmask := g_MaskSpecialFgBg1
@@ -311,8 +313,8 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle Special Order 2.
 		case SPECIAL_FGBG_2:
-			//pixels += 8
-			//glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
+			pixels += 8
+			glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
 
 			cBits := 8
 			bitmask := g_MaskSpecialFgBg2
@@ -327,15 +329,15 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 
 		// Handle White Order.
 		case SPECIAL_WHITE:
-			//pixels += 1
-			//glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
+			pixels += 1
+			glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
 
 			writePixel(dest, whitePixel, bpp)
 
 			// Handle Black Order.
 		case SPECIAL_BLACK:
-			//pixels += 1
-			//glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
+			pixels += 1
+			glog.Debugf("+++ runLength: %v, pixels: %v", "-", pixels)
 
 			writePixel(dest, blackPixel, bpp)
 
@@ -344,10 +346,20 @@ func rleDecompress(w, h, bpp int, data []byte) image.Image {
 				code, codeHeader, runLength, data)
 		}
 	}
-	return rgb565ToImage(w, h, bpp, dest.Bytes())
+	return pixelsToImage(w, h, bpp, dest.Bytes())
 }
 
-func rgb565ToImage(w int, h int, bpp int, data []byte) image.Image {
+func pixelsToImage(w, h, bpp int, data []byte) image.Image {
+	switch bpp {
+	case 16:
+		return rgb565ToImage(w, h, data)
+	default:
+		Throwf("bpp [%v] not implement", bpp)
+	}
+	return nil
+}
+
+func rgb565ToImage(w int, h int, data []byte) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	r := bytes.NewReader(data)
 	for y := 1; y <= h; y++ {
