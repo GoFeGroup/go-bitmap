@@ -94,8 +94,12 @@ func (m *BitMap) LoadRDP60(option *Option) *BitMap {
 	na := ((formatHeader & 0x20) >> 5) == 1 //Indicates if an alpha plane is present.
 	//glog.Debugf("na: %v", na)
 
-	if cll != 0 && cs == true {
-		ThrowError("not implement [cll or cs]")
+	if cll == 0 && cs == true {
+		ThrowError("Chroma subsampling requires YCoCg and does not work with RGB data")
+	}
+
+	if cs == true {
+		ThrowError("not implement [cs]")
 	}
 
 	if !rle {
